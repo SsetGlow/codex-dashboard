@@ -43,13 +43,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let item = NSMenuItem()
         let view = NSView(frame: NSRect(x: 0, y: 0, width: 300, height: 44))
 
-        let button = NSButton(frame: NSRect(x: 14, y: 5, width: 272, height: 34))
+        let button = HoverMenuButton(frame: NSRect(x: 10, y: 5, width: 280, height: 34))
         button.title = "Refresh Usage"
         button.image = NSImage(systemSymbolName: "arrow.clockwise", accessibilityDescription: "Refresh Usage")
-        button.imagePosition = .imageLeading
-        button.alignment = .left
-        button.bezelStyle = .inline
-        button.isBordered = false
         button.target = self
         button.action = #selector(refreshUsage)
 
@@ -82,5 +78,119 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 extension AppDelegate: NSMenuDelegate {
     func menuWillOpen(_ menu: NSMenu) {
         usageStore.refresh()
+    }
+}
+
+final class HoverMenuButton: NSControl {
+    var title = "" {
+        didSet { needsDisplay = true }
+    }
+
+    var image: NSImage? {
+        didSet { needsDisplay = true }
+    }
+
+    private var isHovering = false {
+        didSet { needsDisplay = true }
+    }
+
+    private var isPressing = false {
+        didSet { needsDisplay = true }
+    }
+
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        wantsLayer = true
+        addTrackingArea()
+    }
+
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        wantsLayer = true
+        addTrackingArea()
+    }
+
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        trackingAreas.forEach(removeTrackingArea)
+        addTrackingArea()
+    }
+
+    override func resetCursorRects() {
+        addCursorRect(bounds, cursor: .pointingHand)
+    }
+
+    override func mouseEntered(with event: NSEvent) {
+        isHovering = true
+    }
+
+    override func mouseExited(with event: NSEvent) {
+        isHovering = false
+        isPressing = false
+    }
+
+    override func mouseDown(with event: NSEvent) {
+        isPressing = true
+    }
+
+    override func mouseUp(with event: NSEvent) {
+        let clickedInside = bounds.contains(convert(event.locationInWindow, from: nil))
+        isPressing = false
+        if clickedInside {
+            sendAction(action, to: target)
+        }
+    }
+
+    override func draw(_ dirtyRect: NSRect) {
+        super.draw(dirtyRect)
+
+        let backgroundColor: NSColor
+        if isPressing {
+            backgroundColor = NSColor.controlAccentColor.withAlphaComponent(0.22)
+        } else if isHovering {
+            backgroundColor = NSColor.controlAccentColor.withAlphaComponent(0.12)
+        } else {
+            backgroundColor = .clear
+        }
+
+        backgroundColor.setFill()
+        NSBezierPath(roundedRect: bounds, xRadius: 8, yRadius: 8).fill()
+
+        let contentTint = NSColor.labelColor
+        let imageRect = NSRect(x: 13, y: (bounds.height - 15) / 2, width: 15, height: 15)
+        if let image {
+            image.withSymbolConfiguration(.init(pointSize: 13, weight: .medium))?
+                .tinted(contentTint)
+                .draw(in: imageRect)
+        }
+
+        let paragraphStyle = NSMutableParagraphStyle()
+        paragraphStyle.alignment = .left
+        paragraphStyle.lineBreakMode = .byTruncatingTail
+
+        let attributes: [NSAttributedString.Key: Any] = [
+            .font: NSFont.systemFont(ofSize: 14, weight: .regular),
+            .foregroundColor: contentTint,
+            .paragraphStyle: paragraphStyle
+        ]
+        let textRect = NSRect(x: 38, y: (bounds.height - 17) / 2, width: bounds.width - 50, height: 17)
+        title.draw(in: textRect, withAttributes: attributes)
+    }
+
+    private func addTrackingArea() {
+        let options: NSTrackingArea.Options = [.mouseEnteredAndExited, .activeAlways, .inVisibleRect]
+        addTrackingArea(NSTrackingArea(rect: bounds, options: options, owner: self))
+    }
+}
+
+private extension NSImage {
+    func tinted(_ color: NSColor) -> NSImage {
+        let image = copy() as! NSImage
+        image.lockFocus()
+        color.set()
+        NSRect(origin: .zero, size: image.size).fill(using: .sourceAtop)
+        image.unlockFocus()
+        image.isTemplate = false
+        return image
     }
 }
