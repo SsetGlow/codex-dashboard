@@ -48,16 +48,19 @@ struct RateLimitMenuView: View {
                 ProgressView()
                     .controlSize(.mini)
             }
-            Text(refreshText)
+            Text(statusText)
                 .font(.system(size: 9, weight: .medium))
                 .foregroundStyle(.secondary)
             Spacer()
         }
     }
 
-    private var refreshText: String {
+    private var statusText: String {
         if store.isRefreshing {
             return "Refreshing..."
+        }
+        if let capturedAt = store.snapshot.rateLimits?.capturedAt {
+            return "Usage \(capturedAt.formatted(date: .omitted, time: .standard))"
         }
         guard let lastRefreshedAt = store.lastRefreshedAt else {
             return "Not refreshed yet"

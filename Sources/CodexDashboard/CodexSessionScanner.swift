@@ -43,8 +43,11 @@ final class CodexSessionScanner {
             let weekAgo = now.addingTimeInterval(-7 * 24 * 60 * 60)
             var summary = LocalUsageSummary()
             var recentSessions = Set<URL>()
+            let files = Self.jsonlFiles(under: codexDirectory, modifiedAfter: weekAgo)
 
-            for file in Self.jsonlFiles(under: codexDirectory, modifiedAfter: weekAgo) {
+            summary.latestRateLimits = Self.latestRateLimits(in: files, decoder: decoder)
+
+            for file in files {
                 summary.scannedFiles += 1
                 var fileHasRecentUsage = false
 
@@ -68,10 +71,6 @@ final class CodexSessionScanner {
                     }
                     if event.lastTokens != nil && (summary.latestActivity == nil || event.timestamp > summary.latestActivity!) {
                         summary.latestActivity = event.timestamp
-                    }
-                    if let rateLimits = event.rateLimits,
-                       summary.latestRateLimits == nil || rateLimits.capturedAt > summary.latestRateLimits!.capturedAt {
-                        summary.latestRateLimits = rateLimits
                     }
                 }
 
@@ -101,6 +100,38 @@ final class CodexSessionScanner {
             }
             return url
         }
+    }
+
+    private static func latestRateLimits(in files: [URL], decoder: ISO8601DateFormatter) -> CodexRateLimits? {
+        let sortedFiles = files.sorted { lhs, rhs in
+            let lhsDate = (try? lhs.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate) ?? .distantPast
+            let rhsDate = (try? rhs.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate) ?? .distantPast
+            return lhsDate > rhsDate
+        }
+
+        var latest: CodexRateLimits?
+
+        for file in sortedFiles {
+            guard let handle = try? FileHandle(forReadingFrom: file) else { continue }
+            defer { try? handle.close() }
+
+            let data = handle.readDataToEndOfFile()
+            guard let text = String(data: data, encoding: .utf8) else { continue }
+
+            for line in text.split(separator: "\n").reversed() where line.contains("rate_limits") {
+                guard let event = parseLogLine(String(line), decoder: decoder),
+                      let rateLimits = event.rateLimits else {
+                    continue
+                }
+
+                if latest == nil || rateLimits.capturedAt > latest!.capturedAt {
+                    latest = rateLimits
+                }
+                break
+            }
+        }
+
+        return latest
     }
 
     private static func parseLogLine(_ line: String, decoder: ISO8601DateFormatter) -> (timestamp: Date, lastTokens: Int?, rateLimits: CodexRateLimits?)? {
