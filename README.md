@@ -42,9 +42,9 @@ open "build/codex-dashboard.app"
 The distributable DMG will be created at:
 
 ```sh
-dist/codex-dashboard-0.1.6.dmg
+dist/codex-dashboard-0.1.7.dmg
 ```
 
 ## Download
 
-[Download codex-dashboard 0.1.6 DMG](https://github.com/SsetGlow/codex-dashboard/releases/download/v0.1.6/codex-dashboard-0.1.6.dmg)
+[Download codex-dashboard 0.1.7 DMG](https://github.com/SsetGlow/codex-dashboard/releases/download/v0.1.7/codex-dashboard-0.1.7.dmg)

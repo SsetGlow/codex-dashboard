@@ -52,6 +52,9 @@ struct RateLimitMenuView: View {
                 .font(.system(size: 9, weight: .medium))
                 .foregroundStyle(.secondary)
             Spacer()
+            Text(appVersionText)
+                .font(.system(size: 9, weight: .semibold, design: .rounded))
+                .foregroundStyle(.tertiary)
         }
     }
 
@@ -66,6 +69,11 @@ struct RateLimitMenuView: View {
             return "Not refreshed yet"
         }
         return "Refreshed \(lastRefreshedAt.formatted(date: .omitted, time: .standard))"
+    }
+
+    private var appVersionText: String {
+        let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0"
+        return "v\(version)"
     }
 
     private func limitRow(title: String, limit: CodexRateLimit, tint: Color) -> some View {
