@@ -22,7 +22,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         let menu = NSMenu()
         menu.delegate = self
-        menu.addItem(menuItem(title: "Refresh Usage", action: #selector(refreshUsage), keyEquivalent: "r"))
+        menu.addItem(refreshMenuItem())
         menu.addItem(.separator())
         menu.addItem(rateLimitMenuItem())
         menu.addItem(.separator())
@@ -36,6 +36,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func menuItem(title: String, action: Selector, keyEquivalent: String) -> NSMenuItem {
         let item = NSMenuItem(title: title, action: action, keyEquivalent: keyEquivalent)
         item.target = self
+        return item
+    }
+
+    private func refreshMenuItem() -> NSMenuItem {
+        let item = NSMenuItem()
+        let view = NSView(frame: NSRect(x: 0, y: 0, width: 300, height: 44))
+
+        let button = NSButton(frame: NSRect(x: 14, y: 5, width: 272, height: 34))
+        button.title = "Refresh Usage"
+        button.image = NSImage(systemSymbolName: "arrow.clockwise", accessibilityDescription: "Refresh Usage")
+        button.imagePosition = .imageLeading
+        button.alignment = .left
+        button.bezelStyle = .inline
+        button.isBordered = false
+        button.target = self
+        button.action = #selector(refreshUsage)
+
+        view.addSubview(button)
+        item.view = view
         return item
     }
 
