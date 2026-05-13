@@ -9,6 +9,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         setupStatusItem()
         usageStore.refresh()
+        InstallationCleanupPrompter.promptIfNeeded()
 
         refreshTimer = Timer.scheduledTimer(withTimeInterval: 15, repeats: true) { [weak self] _ in
             self?.usageStore.refresh()
