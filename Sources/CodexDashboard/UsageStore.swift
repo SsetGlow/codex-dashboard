@@ -12,6 +12,14 @@ final class UsageStore: ObservableObject {
         isRefreshing = true
 
         Task {
+            let rateLimits = await scanner.scanLatestRateLimits()
+            await MainActor.run {
+                if let rateLimits {
+                    snapshot = snapshot.replacing(rateLimits: rateLimits)
+                }
+                lastRefreshedAt = Date()
+            }
+
             let local = await scanner.scan()
             await MainActor.run {
                 snapshot = UsageSnapshot(
@@ -57,6 +65,17 @@ struct UsageSnapshot {
     var latestActivityText: String {
         guard let latestActivity else { return "No Codex token events found yet" }
         return "Updated \(latestActivity.formatted(date: .omitted, time: .shortened))"
+    }
+
+    func replacing(rateLimits: CodexRateLimits) -> UsageSnapshot {
+        UsageSnapshot(
+            fiveHourTokens: fiveHourTokens,
+            weekTokens: weekTokens,
+            recentSessionCount: recentSessionCount,
+            latestActivity: latestActivity,
+            rateLimits: rateLimits,
+            scannedFiles: scannedFiles
+        )
     }
 }
 

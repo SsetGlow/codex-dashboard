@@ -84,6 +84,14 @@ final class CodexSessionScanner {
         }.value
     }
 
+    func scanLatestRateLimits() async -> CodexRateLimits? {
+        await Task.detached(priority: .userInitiated) { [codexDirectory, decoder] in
+            let weekAgo = Date().addingTimeInterval(-7 * 24 * 60 * 60)
+            let files = Self.jsonlFiles(under: codexDirectory, modifiedAfter: weekAgo)
+            return Self.latestRateLimits(in: files, decoder: decoder)
+        }.value
+    }
+
     private static func jsonlFiles(under root: URL, modifiedAfter cutoff: Date) -> [URL] {
         guard let enumerator = FileManager.default.enumerator(
             at: root,
