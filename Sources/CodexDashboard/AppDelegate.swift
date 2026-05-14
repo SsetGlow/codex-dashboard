@@ -30,8 +30,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(.separator())
         menu.addItem(menuItem(title: "Quit", action: #selector(quit), keyEquivalent: "q"))
 
-        let item = NSStatusBar.system.statusItem(withLength: 78)
-        let view = StatusUsageControl(frame: NSRect(x: 0, y: 0, width: 78, height: NSStatusBar.system.thickness))
+        let item = NSStatusBar.system.statusItem(withLength: 56)
+        let view = StatusUsageControl(frame: NSRect(x: 0, y: 0, width: 56, height: NSStatusBar.system.thickness))
         view.toolTip = "Codex Dashboard"
         view.openMenu = { [weak item] in
             guard let item else { return }
@@ -257,7 +257,7 @@ final class StatusUsageControl: NSControl {
 
         let iconSize: CGFloat = 15
         let iconRect = NSRect(
-            x: 6,
+            x: 5,
             y: (bounds.height - iconSize) / 2,
             width: iconSize,
             height: iconSize
@@ -278,7 +278,7 @@ final class StatusUsageControl: NSControl {
         ]
 
         NSAttributedString(string: percentText(percent), attributes: valueAttributes)
-            .draw(in: NSRect(x: 27, y: y, width: bounds.width - 31, height: 10))
+            .draw(in: NSRect(x: 25, y: y, width: bounds.width - 27, height: 10))
     }
 
     private func percentText(_ percent: Double?) -> String {
