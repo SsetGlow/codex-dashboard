@@ -82,7 +82,7 @@ struct RateLimitMenuView: View {
                 Text(title)
                     .font(.system(size: 11, weight: .medium))
                 Spacer()
-                Text("\(Int(limit.remainingPercent.rounded()))%")
+                Text("\(Int(limit.remainingPercent.rounded(.down)))%")
                     .font(.system(size: 11, weight: .semibold, design: .rounded))
             }
 

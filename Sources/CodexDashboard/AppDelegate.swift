@@ -25,6 +25,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(refreshMenuItem())
         menu.addItem(.separator())
         menu.addItem(rateLimitMenuItem())
+        menu.addItem(revealSourceLogMenuItem())
         menu.addItem(.separator())
         menu.addItem(menuItem(title: "Open Codex Usage Page", action: #selector(openCodexUsagePage), keyEquivalent: "u"))
         menu.addItem(.separator())
@@ -83,12 +84,35 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return item
     }
 
+    private func revealSourceLogMenuItem() -> NSMenuItem {
+        let item = NSMenuItem()
+        let view = NSView(frame: NSRect(x: 0, y: 0, width: 300, height: 38))
+
+        let button = HoverMenuButton(frame: NSRect(x: 10, y: 4, width: 280, height: 30))
+        button.title = "Show Source Log in Finder"
+        button.image = NSImage(systemSymbolName: "folder", accessibilityDescription: "Show Source Log in Finder")
+        button.target = self
+        button.action = #selector(revealSourceLog)
+
+        view.addSubview(button)
+        item.view = view
+        return item
+    }
+
     @objc private func refreshUsage() {
         usageStore.refresh()
     }
 
     @objc private func openCodexUsagePage() {
         NSWorkspace.shared.open(URL(string: "https://chatgpt.com/codex/settings/usage")!)
+    }
+
+    @objc private func revealSourceLog() {
+        if let sourceFile = usageStore.snapshot.rateLimits?.sourceFile {
+            NSWorkspace.shared.activateFileViewerSelecting([sourceFile])
+        } else {
+            NSWorkspace.shared.open(FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".codex"))
+        }
     }
 
     @objc private func quit() {
@@ -283,7 +307,7 @@ final class StatusUsageControl: NSControl {
 
     private func percentText(_ percent: Double?) -> String {
         guard let percent else { return "--" }
-        return "\(Int(percent.rounded()))%"
+        return "\(Int(percent.rounded(.down)))%"
     }
 }
 

@@ -15,6 +15,18 @@ struct CodexRateLimits {
     let planType: String?
     let reachedType: String?
     let capturedAt: Date
+    let sourceFile: URL?
+
+    func withSourceFile(_ sourceFile: URL) -> CodexRateLimits {
+        CodexRateLimits(
+            primary: primary,
+            secondary: secondary,
+            planType: planType,
+            reachedType: reachedType,
+            capturedAt: capturedAt,
+            sourceFile: sourceFile
+        )
+    }
 }
 
 struct CodexRateLimit {
@@ -132,8 +144,9 @@ final class CodexSessionScanner {
                     continue
                 }
 
-                if latest == nil || rateLimits.capturedAt > latest!.capturedAt {
-                    latest = rateLimits
+                let sourcedRateLimits = rateLimits.withSourceFile(file)
+                if latest == nil || sourcedRateLimits.capturedAt > latest!.capturedAt {
+                    latest = sourcedRateLimits
                 }
                 break
             }
@@ -192,7 +205,8 @@ final class CodexSessionScanner {
             secondary: secondary,
             planType: rateLimits["plan_type"] as? String,
             reachedType: rateLimits["rate_limit_reached_type"] as? String,
-            capturedAt: capturedAt
+            capturedAt: capturedAt,
+            sourceFile: nil
         )
     }
 
