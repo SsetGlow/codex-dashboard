@@ -2,7 +2,7 @@ import AppKit
 import Foundation
 
 enum InstallationCleanupPrompter {
-    private static let promptKey = "installationCleanupPrompted.0.1.7"
+    private static let promptKey = "installationCleanupPrompted.0.1.8"
     private static let volumePath = "/Volumes/codex-dashboard"
 
     static func promptIfNeeded() {

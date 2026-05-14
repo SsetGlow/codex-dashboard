@@ -1,10 +1,13 @@
 import AppKit
+import Combine
 import SwiftUI
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private let usageStore = UsageStore()
     private var statusItem: NSStatusItem?
+    private var statusView: StatusUsageControl?
     private var refreshTimer: Timer?
+    private var usageCancellable: AnyCancellable?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         setupStatusItem()
@@ -17,9 +20,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func setupStatusItem() {
-        let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-        item.button?.image = NSImage(systemSymbolName: "chart.line.uptrend.xyaxis", accessibilityDescription: "Codex Dashboard")
-
         let menu = NSMenu()
         menu.delegate = self
         menu.addItem(refreshMenuItem())
@@ -29,8 +29,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(menuItem(title: "Open Codex Usage Page", action: #selector(openCodexUsagePage), keyEquivalent: "u"))
         menu.addItem(.separator())
         menu.addItem(menuItem(title: "Quit", action: #selector(quit), keyEquivalent: "q"))
-        item.menu = menu
+
+        let item = NSStatusBar.system.statusItem(withLength: 78)
+        let view = StatusUsageControl(frame: NSRect(x: 0, y: 0, width: 78, height: NSStatusBar.system.thickness))
+        view.toolTip = "Codex Dashboard"
+        view.openMenu = { [weak item] in
+            guard let item else { return }
+            item.popUpMenu(menu)
+        }
+        item.view = view
+        statusView = view
         statusItem = item
+
+        updateStatusItem(snapshot: usageStore.snapshot)
+        usageCancellable = usageStore.$snapshot
+            .receive(on: RunLoop.main)
+            .sink { [weak self] snapshot in
+                self?.updateStatusItem(snapshot: snapshot)
+            }
+    }
+
+    private func updateStatusItem(snapshot: UsageSnapshot) {
+        statusView?.primaryPercent = snapshot.rateLimits?.primary.remainingPercent
+        statusView?.secondaryPercent = snapshot.rateLimits?.secondary.remainingPercent
     }
 
     private func menuItem(title: String, action: Selector, keyEquivalent: String) -> NSMenuItem {
@@ -180,6 +201,93 @@ final class HoverMenuButton: NSControl {
     private func addTrackingArea() {
         let options: NSTrackingArea.Options = [.mouseEnteredAndExited, .activeAlways, .inVisibleRect]
         addTrackingArea(NSTrackingArea(rect: bounds, options: options, owner: self))
+    }
+}
+
+final class StatusUsageControl: NSControl {
+    var primaryPercent: Double? {
+        didSet { needsDisplay = true }
+    }
+
+    var secondaryPercent: Double? {
+        didSet { needsDisplay = true }
+    }
+
+    var openMenu: (() -> Void)?
+
+    private var isPressing = false {
+        didSet { needsDisplay = true }
+    }
+
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        wantsLayer = true
+    }
+
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        wantsLayer = true
+    }
+
+    override func resetCursorRects() {
+        addCursorRect(bounds, cursor: .pointingHand)
+    }
+
+    override func mouseDown(with event: NSEvent) {
+        isPressing = true
+    }
+
+    override func mouseUp(with event: NSEvent) {
+        let clickedInside = bounds.contains(convert(event.locationInWindow, from: nil))
+        isPressing = false
+        if clickedInside {
+            openMenu?()
+        }
+    }
+
+    override func draw(_ dirtyRect: NSRect) {
+        super.draw(dirtyRect)
+
+        if isPressing {
+            NSColor.selectedContentBackgroundColor.withAlphaComponent(0.28).setFill()
+            NSBezierPath(rect: bounds).fill()
+        }
+
+        let iconSize: CGFloat = 15
+        let iconRect = NSRect(
+            x: 6,
+            y: (bounds.height - iconSize) / 2,
+            width: iconSize,
+            height: iconSize
+        )
+        NSImage(systemSymbolName: "chart.line.uptrend.xyaxis", accessibilityDescription: "Codex Dashboard")?
+            .withSymbolConfiguration(.init(pointSize: 13, weight: .medium))?
+            .tinted(.labelColor)
+            .draw(in: iconRect)
+
+        drawLine(label: "5h", percent: primaryPercent, y: bounds.midY + 1)
+        drawLine(label: "7d", percent: secondaryPercent, y: bounds.midY - 8)
+    }
+
+    private func drawLine(label: String, percent: Double?, y: CGFloat) {
+        let labelAttributes: [NSAttributedString.Key: Any] = [
+            .font: NSFont.monospacedSystemFont(ofSize: 8, weight: .semibold),
+            .foregroundColor: NSColor.secondaryLabelColor
+        ]
+        let valueAttributes: [NSAttributedString.Key: Any] = [
+            .font: NSFont.monospacedDigitSystemFont(ofSize: 8, weight: .medium),
+            .foregroundColor: NSColor.labelColor
+        ]
+
+        NSAttributedString(string: label, attributes: labelAttributes)
+            .draw(in: NSRect(x: 26, y: y, width: 14, height: 9))
+        NSAttributedString(string: percentText(percent), attributes: valueAttributes)
+            .draw(in: NSRect(x: 42, y: y, width: bounds.width - 44, height: 9))
+    }
+
+    private func percentText(_ percent: Double?) -> String {
+        guard let percent else { return "--" }
+        return "\(Int(percent.rounded()))%"
     }
 }
 
