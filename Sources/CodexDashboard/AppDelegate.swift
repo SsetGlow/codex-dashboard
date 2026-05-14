@@ -205,6 +205,8 @@ final class HoverMenuButton: NSControl {
 }
 
 final class StatusUsageControl: NSControl {
+    private static let valueFont = NSFont.systemFont(ofSize: 8.5, weight: .medium)
+
     var primaryPercent: Double? {
         didSet { needsDisplay = true }
     }
@@ -265,24 +267,18 @@ final class StatusUsageControl: NSControl {
             .tinted(.labelColor)
             .draw(in: iconRect)
 
-        drawLine(label: "5h", percent: primaryPercent, y: bounds.midY + 1)
-        drawLine(label: "7d", percent: secondaryPercent, y: bounds.midY - 8)
+        drawLine(percent: primaryPercent, y: bounds.midY + 1)
+        drawLine(percent: secondaryPercent, y: bounds.midY - 8)
     }
 
-    private func drawLine(label: String, percent: Double?, y: CGFloat) {
-        let labelAttributes: [NSAttributedString.Key: Any] = [
-            .font: NSFont.monospacedSystemFont(ofSize: 8, weight: .semibold),
-            .foregroundColor: NSColor.secondaryLabelColor
-        ]
+    private func drawLine(percent: Double?, y: CGFloat) {
         let valueAttributes: [NSAttributedString.Key: Any] = [
-            .font: NSFont.monospacedDigitSystemFont(ofSize: 8, weight: .medium),
-            .foregroundColor: NSColor.labelColor
+            .font: Self.valueFont,
+            .foregroundColor: NSColor.labelColor.resolvedColor
         ]
 
-        NSAttributedString(string: label, attributes: labelAttributes)
-            .draw(in: NSRect(x: 26, y: y, width: 14, height: 9))
         NSAttributedString(string: percentText(percent), attributes: valueAttributes)
-            .draw(in: NSRect(x: 42, y: y, width: bounds.width - 44, height: 9))
+            .draw(in: NSRect(x: 27, y: y, width: bounds.width - 31, height: 10))
     }
 
     private func percentText(_ percent: Double?) -> String {
@@ -300,5 +296,11 @@ private extension NSImage {
         image.unlockFocus()
         image.isTemplate = false
         return image
+    }
+}
+
+private extension NSColor {
+    var resolvedColor: NSColor {
+        usingColorSpace(.sRGB) ?? self
     }
 }

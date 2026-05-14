@@ -2,7 +2,7 @@
 set -euo pipefail
 
 APP_NAME="codex-dashboard"
-VERSION="0.1.8"
+VERSION="0.1.9"
 BUILD_APP="build/${APP_NAME}.app"
 DIST_DIR="dist"
 STAGING_DIR="build/dmg-staging"
