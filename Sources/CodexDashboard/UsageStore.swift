@@ -6,6 +6,7 @@ final class UsageStore: ObservableObject {
     @Published private(set) var lastRefreshedAt: Date?
 
     private let scanner = CodexSessionScanner()
+    private var isRefreshingRateLimits = false
 
     func refresh() {
         guard !isRefreshing else { return }
@@ -32,6 +33,22 @@ final class UsageStore: ObservableObject {
                 )
                 lastRefreshedAt = Date()
                 isRefreshing = false
+            }
+        }
+    }
+
+    func refreshRateLimits() {
+        guard !isRefreshing, !isRefreshingRateLimits else { return }
+        isRefreshingRateLimits = true
+
+        Task {
+            let rateLimits = await scanner.scanLatestRateLimits()
+            await MainActor.run {
+                if let rateLimits {
+                    snapshot = snapshot.replacing(rateLimits: rateLimits)
+                }
+                lastRefreshedAt = Date()
+                isRefreshingRateLimits = false
             }
         }
     }

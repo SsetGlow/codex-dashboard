@@ -14,8 +14,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         usageStore.refresh()
         InstallationCleanupPrompter.promptIfNeeded()
 
-        refreshTimer = Timer.scheduledTimer(withTimeInterval: 15, repeats: true) { [weak self] _ in
-            self?.usageStore.refresh()
+        refreshTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
+            self?.usageStore.refreshRateLimits()
         }
     }
 
@@ -122,7 +122,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
 extension AppDelegate: NSMenuDelegate {
     func menuWillOpen(_ menu: NSMenu) {
-        usageStore.refresh()
+        usageStore.refreshRateLimits()
     }
 }
 

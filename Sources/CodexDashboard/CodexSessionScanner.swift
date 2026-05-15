@@ -40,6 +40,8 @@ struct CodexRateLimit {
 }
 
 final class CodexSessionScanner {
+    private static let rateLimitTailBytes: UInt64 = 256 * 1024
+
     private let codexDirectory: URL
     private let decoder = ISO8601DateFormatter()
 
@@ -132,11 +134,7 @@ final class CodexSessionScanner {
         var latest: CodexRateLimits?
 
         for file in sortedFiles {
-            guard let handle = try? FileHandle(forReadingFrom: file) else { continue }
-            defer { try? handle.close() }
-
-            let data = handle.readDataToEndOfFile()
-            guard let text = String(data: data, encoding: .utf8) else { continue }
+            guard let text = tailText(from: file, maxBytes: rateLimitTailBytes) else { continue }
 
             for line in text.split(separator: "\n").reversed() where line.contains("rate_limits") {
                 guard let event = parseLogLine(String(line), decoder: decoder),
@@ -153,6 +151,22 @@ final class CodexSessionScanner {
         }
 
         return latest
+    }
+
+    private static func tailText(from file: URL, maxBytes: UInt64) -> String? {
+        guard let handle = try? FileHandle(forReadingFrom: file) else { return nil }
+        defer { try? handle.close() }
+
+        let size = (try? handle.seekToEnd()) ?? 0
+        let offset = size > maxBytes ? size - maxBytes : 0
+        try? handle.seek(toOffset: offset)
+        let data = handle.readDataToEndOfFile()
+
+        guard var text = String(data: data, encoding: .utf8) else { return nil }
+        if offset > 0, let newlineIndex = text.firstIndex(of: "\n") {
+            text.removeSubrange(...newlineIndex)
+        }
+        return text
     }
 
     private static func parseLogLine(_ line: String, decoder: ISO8601DateFormatter) -> (timestamp: Date, lastTokens: Int?, rateLimits: CodexRateLimits?)? {
